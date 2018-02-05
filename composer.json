@@ -1,0 +1,17 @@
+{
+  "name": "administrator/liketools",
+  "authors": [
+    {
+      "name": "jiangxijun",
+      "email": "jiang818@qq.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "LikeTools\\": "src"
+    }
+  }
+}
