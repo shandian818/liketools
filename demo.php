@@ -79,6 +79,6 @@ dump($parents_ids);
 dumpc($parents_ids);
 /*--------------------------------*/
 /*--------------------------------*/
-$result = \liketools\Curl::getInstance()->get('https://cnodejs.org/api/v1/topics');
+$result = \liketools\Curl::getInstance()->get('https://blog.csdn.net/qq_27682041/phoenix/comment/list/80266706?page=1&tree_type=1');
 dump($result['body']);
 /*--------------------------------*/
