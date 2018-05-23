@@ -154,7 +154,8 @@ class Dump
             } else if (is_bool($data)) {
                 $real_data = $data ? 'TRUE' : 'FALSE';
             } else if (is_string($data)) {
-                $str = $is_console ? addslashes($data) : htmlspecialchars($data);
+                $html = htmlspecialchars_decode($data);
+                $str = $is_console ? (addslashes($html)) : htmlspecialchars($html);
                 $real_data = '"' . $str . '"';
             } else {
                 $real_data = $data;
