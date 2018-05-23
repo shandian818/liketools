@@ -18,9 +18,6 @@ class Curl
     //本次调用配置（不记录配置）
     private $options = [];
 
-    //本次调用头配置（不记录配置）
-    private $header = [];
-
     //全局调用配置（记录配置）
     private static $setting = [
         CURLOPT_HEADER => true,//是否获取头部信息(true:是|false:否)
@@ -33,6 +30,7 @@ class Curl
     ];
 
     private $isJson;
+    private $isSave;
     private $chUrl;
     private $chData;
 
@@ -59,7 +57,6 @@ class Curl
         if (!extension_loaded('curl')) {
             die('未安装curl扩展');
         }
-        $this->ch = curl_init();
         $this->options($options);
     }
 
@@ -101,7 +98,7 @@ class Curl
      */
     public function save()
     {
-        self::$setting = $this->options;
+        $this->isSave = true;
         return $this;
     }
 
@@ -113,16 +110,19 @@ class Curl
      */
     public function header($header, $value = null)
     {
-        $this->header = $header + $this->header;
         if (is_array($header)) {
-            $this->header = $header + $this->header;
+            $this->options[CURLOPT_HTTPHEADER] = $header + $this->options[CURLOPT_HTTPHEADER];
         } else if ($header && !is_null($value)) {
-            $this->header[$header] = $value;
+            $this->options[CURLOPT_HTTPHEADER][$header] = $value;
         }
-        curl_setopt($this->ch, CURLOPT_HTTPHEADER, $this->header);
         return $this;
     }
 
+    /**
+     * 设置超时时间
+     * @param int $time
+     * @return $this
+     */
     public function time($time = 30)
     {
         $this->options[CURLOPT_TIMEOUT] = $time;
@@ -158,6 +158,40 @@ class Curl
     public function data($data)
     {
         $this->chData = $data;
+        return $this;
+    }
+
+    /**
+     * 设置请求的cookie
+     * @param $cookie
+     * @param null $value
+     * @return $this
+     */
+    public function cookie($cookie, $value = null)
+    {
+        if (!isset($this->options[CURLOPT_COOKIE])) {
+            $this->options[CURLOPT_COOKIE] = '';
+        }
+        if (!empty($cookie)) {
+            $cookie_option = '';
+            if (is_array($cookie)) {
+                //数组格式设置
+                $array = [];
+                foreach ($cookie as $key => $value) {
+                    $array[] = $key . '=' . $value;
+                }
+                $cookie_option .= implode(';', $array);
+            } else if (!is_null($value)) {
+                //单个cookie设置
+                $cookie_option .= $cookie . '=' . $value . ';';
+            } else {
+                //$cookie为完整cookie字符串
+                $cookie_option .= $cookie;
+            }
+            if (!empty($cookie_option)) {
+                $this->options[CURLOPT_COOKIE] .= $cookie_option;
+            }
+        }
         return $this;
     }
 
@@ -202,9 +236,13 @@ class Curl
      */
     public function request($type = '')
     {
+        $this->ch = curl_init();
         $options = $this->options + self::$setting;
         foreach ($options as $key => $val) {
             curl_setopt($this->ch, $key, $val);
+        }
+        if ($this->isSave) {
+            self::$setting = $options;
         }
         if (empty($this->chUrl)) {
             die('CURL请求的url不能为空');
@@ -248,8 +286,13 @@ class Curl
         } else {
             $status = true;
             //success
-            $header = substr($response, 0, $info['header_size']);
-            $body = substr($response, $info['header_size']);
+            if ($options[CURLOPT_HEADER]) {
+                $header = substr($response, 0, $info['header_size']);
+                $body = substr($response, $info['header_size']);
+            } else {
+                $header = '';
+                $body = $response;
+            }
         }
         $this->clear();
         return [
@@ -262,12 +305,16 @@ class Curl
         ];
     }
 
+    /**
+     *请求后清空当次生效的变量
+     */
     private function clear()
     {
-        unset($this->_options);
-        unset($this->_header);
-        unset($this->chData);
-        unset($this->chUrl);
-        unset($this->isJson);
+        $this->options = [];
+        $this->chData = null;
+        $this->chUrl = null;
+        $this->isJson = null;
+        $this->isSave = null;
+        $this->ch = null;
     }
 }
