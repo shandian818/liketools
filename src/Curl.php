@@ -8,7 +8,6 @@
 
 namespace liketools;
 
-
 class Curl
 {
     private static $instance;
@@ -68,10 +67,15 @@ class Curl
      */
     public function options($options, $value = null)
     {
-        if (is_array($options)) {
-            $this->options = $options + $this->options;
-        } else if (!empty($options) && !is_null($value)) {
-            $this->options[$options] = $value;
+        if (!empty($options)) {
+            if (!isset($this->options)) {
+                $this->options = [];
+            }
+            if (is_array($options)) {
+                $this->options = $options + $this->options;
+            } else if ($options && !is_null($value)) {
+                $this->options[$options] = $value;
+            }
         }
         return $this;
     }
@@ -84,10 +88,12 @@ class Curl
      */
     public function setting($setting, $value = null)
     {
-        if (is_array($setting)) {
-            self::$setting = $setting + self::$setting;
-        } else if (!empty($setting) && !is_null($value)) {
-            self::$setting[$setting] = $value;
+        if (!empty($setting)) {
+            if (is_array($setting)) {
+                self::$setting = $setting + self::$setting;
+            } else if (!empty($setting) && !is_null($value)) {
+                self::$setting[$setting] = $value;
+            }
         }
         return $this;
     }
@@ -110,10 +116,15 @@ class Curl
      */
     public function header($header, $value = null)
     {
-        if (is_array($header)) {
-            $this->options[CURLOPT_HTTPHEADER] = $header + $this->options[CURLOPT_HTTPHEADER];
-        } else if ($header && !is_null($value)) {
-            $this->options[CURLOPT_HTTPHEADER][$header] = $value;
+        if (!empty($header)) {
+            if (!isset($this->options[CURLOPT_HTTPHEADER])) {
+                $this->options[CURLOPT_HTTPHEADER] = [];
+            }
+            if (is_array($header)) {
+                $this->options[CURLOPT_HTTPHEADER] = $header + $this->options[CURLOPT_HTTPHEADER];
+            } else if ($header && !is_null($value)) {
+                $this->options[CURLOPT_HTTPHEADER][$header] = $value;
+            }
         }
         return $this;
     }
@@ -169,9 +180,6 @@ class Curl
      */
     public function cookie($cookie, $value = null)
     {
-        if (!isset($this->options[CURLOPT_COOKIE])) {
-            $this->options[CURLOPT_COOKIE] = '';
-        }
         if (!empty($cookie)) {
             $cookie_option = '';
             if (is_array($cookie)) {
@@ -189,6 +197,9 @@ class Curl
                 $cookie_option .= $cookie;
             }
             if (!empty($cookie_option)) {
+                if (!isset($this->options[CURLOPT_COOKIE])) {
+                    $this->options[CURLOPT_COOKIE] = '';
+                }
                 $this->options[CURLOPT_COOKIE] .= $cookie_option;
             }
         }
@@ -237,13 +248,6 @@ class Curl
     public function request($type = '')
     {
         $this->ch = curl_init();
-        $options = $this->options + self::$setting;
-        foreach ($options as $key => $val) {
-            curl_setopt($this->ch, $key, $val);
-        }
-        if ($this->isSave) {
-            self::$setting = $options;
-        }
         if (empty($this->chUrl)) {
             die('CURL请求的url不能为空');
         }
@@ -273,11 +277,18 @@ class Curl
                 break;
         }
         curl_setopt($this->ch, CURLOPT_URL, $this->chUrl);
+        $options = $this->options + self::$setting;
+        foreach ($options as $key => $val) {
+            curl_setopt($this->ch, $key, $val);
+        }
         $response = curl_exec($this->ch);
         $info = curl_getinfo($this->ch);
         $errno = curl_errno($this->ch);
         $error = curl_error($this->ch);
         curl_close($this->ch);
+        if ($this->isSave) {
+            self::$setting = $options;
+        }
         if (false === $response || 0 !== $errno || !empty($error)) {
             $status = false;
             //error
